@@ -1,0 +1,49 @@
+<configuration>
+<property><name>dfs.namenode.datanode.registration.ip-hostname-check</name><value>false</value></property>
+<property><name>dfs.webhdfs.enabled</name><value>true</value></property>
+<property><name>dfs.permissions.enabled</name><value>false</value></property>
+<property><name>dfs.namenode.name.dir</name><value>file:///hadoop/dfs/name</value></property>
+<property><name>dfs.namenode.rpc-bind-host</name><value>0.0.0.0</value></property>
+<property><name>dfs.namenode.servicerpc-bind-host</name><value>0.0.0.0</value></property>
+<property><name>dfs.namenode.http-bind-host</name><value>0.0.0.0</value></property>
+<property><name>dfs.namenode.https-bind-host</name><value>0.0.0.0</value></property>
+<property><name>dfs.client.use.datanode.hostname</name><value>true</value></property>
+<property><name>dfs.datanode.use.datanode.hostname</name><value>true</value></property>
+
+<!-- Указываем количество реплик для данных в HDFS -->
+<property>
+  <name>dfs.replication</name>
+  <value>3</value>
+</property>
+
+<!-- Указываем минимальное количество реплик для выживания блока (опционально, но полезно) -->
+<property>
+  <name>dfs.namenode.replication.min</name>
+  <value>2</value>
+</property>
+
+<!-- Задаём интервал, с которым NameNode проверяет состояние репликации -->
+<property>
+  <name>dfs.namenode.replication.interval</name>
+  <value>60</value> <!-- время в секундах -->
+</property>
+
+<!-- Включаем автоматическое восстановление реплик (обычно включено по умолчанию) -->
+<property>
+  <name>dfs.namenode.replication.enable</name>
+  <value>true</value>
+</property>
+
+<!-- Задаём интервал отправки heartbeat-сигналов от DataNode к NameNode -->
+<property>
+  <name>dfs.heartbeat.interval</name>
+  <value>3</value> <!-- В секундах -->
+</property>
+
+<!-- Задаём время, через которое NameNode проверяет, не превышен ли лимит пропущенных heartbeat. -->
+<property>
+  <name>dfs.namenode.heartbeat.recheck-interval</name>
+  <value>10000</value> <!-- В миллисекундах -->
+</property>
+
+</configuration>

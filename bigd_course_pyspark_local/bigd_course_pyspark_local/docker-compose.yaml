@@ -1,0 +1,12 @@
+services:
+  jupyter-pyspark:
+    image: jupyter/pyspark-notebook:x86_64-spark-3.5.0
+    container_name: jupyter-pyspark
+    hostname: jupyter-pyspark
+    command: start.sh jupyter notebook --NotebookApp.token=''
+    restart: always
+    ports:
+    - 8888:8888
+    - 4040:4040
+    volumes:
+    - ./work:/home/jovyan

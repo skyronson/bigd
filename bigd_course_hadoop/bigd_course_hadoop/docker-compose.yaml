@@ -1,0 +1,208 @@
+services:
+  namenode:
+    #image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    build:
+      context: ./
+      target: namenode
+    container_name: namenode
+    hostname: namenode
+    restart: always
+    ports:
+      - 9870:9870
+      - 9000:9000
+    volumes:
+      - namenode:/hadoop/dfs/name
+      - namenode_home:/home
+      - ./config/hdfs-site.xml:/etc/hadoop/hdfs-site.xml
+      - ./mapreduce:/home/mapreduce
+    #command: sh /init/init.sh
+    environment:
+      - CLUSTER_NAME=bigd_course_hadoop
+    env_file:
+      - ./config/hadoop.env
+
+  datanode1:
+    #image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    build:
+      context: ./
+      target: datanode
+    container_name: datanode1
+    hostname: datanode1
+    restart: always
+    volumes:
+      - datanode1:/hadoop/dfs/data
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870"
+    env_file:
+      - ./config/hadoop.env
+
+  datanode2:
+    #image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    build:
+      context: ./
+      target: datanode
+    container_name: datanode2
+    hostname: datanode2
+    restart: always
+    volumes:
+      - datanode2:/hadoop/dfs/data
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870"
+    env_file:
+      - ./config/hadoop.env
+
+  datanode3:
+    #image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    build:
+      context: ./
+      target: datanode
+    container_name: datanode3
+    hostname: datanode3
+    restart: always
+    volumes:
+      - datanode3:/hadoop/dfs/data
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870"
+    env_file:
+      - ./config/hadoop.env
+
+  datanode4:
+    #image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    build:
+      context: ./
+      target: datanode
+    container_name: datanode4
+    hostname: datanode4
+    restart: always
+    volumes:
+      - datanode4:/hadoop/dfs/data
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870"
+    env_file:
+      - ./config/hadoop.env
+
+  resourcemanager:
+    #image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
+    build:
+      context: ./
+      target: resourcemanager
+    container_name: resourcemanager
+    restart: always
+    ports:
+      - 8088:8088
+    environment:
+      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode1:9864"
+    env_file:
+      - ./config/hadoop.env
+
+  nodemanager:
+    #image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
+    build:
+      context: ./
+      target: nodemanager
+    container_name: nodemanager
+    restart: always
+    environment:
+      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode1:9864 resourcemanager:8088"
+    env_file:
+      - ./config/hadoop.env
+
+  historyserver:
+    #image: bde2020/hadoop-historyserver:2.0.0-hadoop3.2.1-java8
+    build:
+      context: ./
+      target: historyserver
+    container_name: historyserver
+    restart: always
+    environment:
+      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode1:9864 resourcemanager:8088"
+    volumes:
+      - historyserver:/hadoop/yarn/timeline
+    env_file:
+      - ./config/hadoop.env
+
+  postgres: # Hive Metastore database
+    image: postgres:13
+    container_name: postgres
+    hostname: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: hive
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: metastore_db
+    volumes:
+      - hive_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hive -d metastore_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  hive-metastore:
+    # image: apache/hive:4.0.0
+    build:
+      context: ./
+      target: hive
+    container_name: hive-metastore
+    hostname: hive-metastore
+    restart: always
+    command: ["/opt/hive/bin/start-metastore"]
+    environment:
+      SERVICE_NAME: metastore
+      DB_DRIVER: postgres
+      SERVICE_OPTS: "-Djavax.jdo.option.ConnectionDriverName=org.postgresql.Driver -Djavax.jdo.option.ConnectionURL=jdbc:postgresql://postgres:5432/metastore_db -Djavax.jdo.option.ConnectionUserName=hive -Djavax.jdo.option.ConnectionPassword=password"
+    volumes:
+      - warehouse:/opt/hive/data/warehouse
+      - ./config/postgresql-42.7.8.jar:/opt/hive/lib/postgres.jar
+    depends_on:
+      - postgres
+    env_file:
+      - ./config/hadoop.env
+    healthcheck:
+      test: ["CMD-SHELL", "netstat -ltn | grep -q 9083 || exit 1"]
+      interval: 40s
+      timeout: 20s
+      retries: 3
+      start_period: 60s
+
+  hiveserver2:
+    # image: apache/hive:4.0.0
+    build:
+      context: ./
+      target: hive
+    container_name: hiveserver2
+    hostname: hiveserver2
+    restart: always
+    ports:
+      - "10000:10000"
+      - "10002:10002"
+    environment:
+      SERVICE_NAME: hiveserver2
+      SERVICE_OPTS: "-Dhive.metastore.uris=thrift://hive-metastore:9083"
+      HIVE_CUSTOM_CONF_DIR: /hive_custom_conf
+    volumes:
+      - warehouse:/opt/hive/data/warehouse
+      # - ./config/core-site.xml:/hive_custom_conf/core-site.xml
+      - ./config/hdfs-site.xml:/hive_custom_conf/hdfs-site.xml
+    depends_on:
+      - hive-metastore
+    env_file:
+      - ./config/hadoop.env
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:10002/ || exit 1"]
+      interval: 40s
+      timeout: 20s
+      retries: 3
+      start_period: 90s
+
+volumes:
+  namenode:
+  namenode_home:
+  datanode1:
+  datanode2:
+  datanode3:
+  datanode4:
+  historyserver:
+  hive_db:
+  warehouse:

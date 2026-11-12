@@ -1,0 +1,42 @@
+services:
+  jupyter:
+    build: .
+    container_name: jupyter
+    hostname: jupyter
+    volumes:
+      - ./work:/home/jovyan/work
+    ports:
+      - 8888:8888
+    command: "start-notebook.sh --NotebookApp.token="
+    networks:
+      - netw1
+
+  mysql:
+    image: mysql:9.4
+    container_name: mysql
+    hostname: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: sakila
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
+    ports:
+      - 3306:3306
+    volumes:
+#      - mysql_data:/var/lib/mysql
+      - ./init.d:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "$$MYSQL_USER", "-p$$MYSQL_PASSWORD"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - netw1
+
+#volumes:
+#  mysql_data:
+
+networks:
+  netw1:

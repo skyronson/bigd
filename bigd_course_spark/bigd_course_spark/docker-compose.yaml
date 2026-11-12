@@ -1,0 +1,233 @@
+services:
+  spark-master:
+    image: apache/spark:3.5.5
+    container_name: spark-master
+    user: root
+    command: >
+      bash -c "
+        mkdir -p /opt/spark/spark-events && \
+        chown spark:spark /opt/spark/spark-events && \
+        chmod 775 /opt/spark/spark-events && \
+        mkdir -p /opt/spark/data && \
+        chown spark:spark /opt/spark/data && \
+        chmod 775 /opt/spark/data && \
+        /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master -h spark-master
+      "
+    hostname: spark-master
+    environment:
+      - SPARK_MODE=master
+      - TZ=Europe/Saratov
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+    volumes:
+      - shared-data:/opt/spark/data
+      - spark-events:/opt/spark/spark-events
+      - ./config/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf
+    networks:
+      - spark-network
+    healthcheck:
+      test: ["CMD", "bash", "-c", "curl -f http://localhost:8080/ || exit 1"]
+      start_period: 30s
+      interval: 15s
+      timeout: 10s
+      retries: 3
+
+  spark-worker-1:
+    container_name: spark-worker-1
+    hostname: spark-worker-1
+    image: apache/spark:3.5.5
+    user: root
+    command: >
+      bash -c "
+        mkdir -p /opt/spark/spark-events && \
+        chown spark:spark /opt/spark/spark-events && \
+        chmod 775 /opt/spark/spark-events && \
+        mkdir -p /opt/spark/data && \
+        chown spark:spark /opt/spark/data && \
+        chmod 775 /opt/spark/data && \
+        /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+      "
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER=spark://spark-master:7077
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=2g
+      - TZ=Europe/Saratov
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    volumes:
+      - shared-data:/opt/spark/data
+      - spark-events:/opt/spark/spark-events
+      - ./config/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf
+    networks:
+      - spark-network
+    healthcheck:
+      test: ["CMD", "bash", "-c", "curl -f http://localhost:8081/ || exit 1"]
+      start_period: 40s
+      interval: 15s
+      timeout: 10s
+      retries: 3
+
+  spark-worker-2:
+    container_name: spark-worker-2
+    hostname: spark-worker-2
+    image: apache/spark:3.5.5
+    user: root
+    command: >
+      bash -c "
+        mkdir -p /opt/spark/spark-events && \
+        chown spark:spark /opt/spark/spark-events && \
+        chmod 775 /opt/spark/spark-events && \
+        mkdir -p /opt/spark/data && \
+        chown spark:spark /opt/spark/data && \
+        chmod 775 /opt/spark/data && \
+        /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+      "
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER=spark://spark-master:7077
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=2g
+      - TZ=Europe/Saratov
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    volumes:
+      - shared-data:/opt/spark/data
+      - spark-events:/opt/spark/spark-events
+      - ./config/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf
+    networks:
+      - spark-network
+    healthcheck:
+      test: ["CMD", "bash", "-c", "curl -f http://localhost:8081/ || exit 1"]
+      start_period: 40s
+      interval: 15s
+      timeout: 10s
+      retries: 3
+
+  spark-worker-3:
+    container_name: spark-worker-3
+    hostname: spark-worker-3
+    image: apache/spark:3.5.5
+    user: root
+    command: >
+      bash -c "
+        mkdir -p /opt/spark/spark-events && \
+        chown spark:spark /opt/spark/spark-events && \
+        chmod 775 /opt/spark/spark-events && \
+        mkdir -p /opt/spark/data && \
+        chown spark:spark /opt/spark/data && \
+        chmod 775 /opt/spark/data && \
+        /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+      "
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER=spark://spark-master:7077
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=2g
+      - TZ=Europe/Saratov
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    volumes:
+      - shared-data:/opt/spark/data
+      - spark-events:/opt/spark/spark-events
+      - ./config/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf
+    networks:
+      - spark-network
+    healthcheck:
+      test: ["CMD", "bash", "-c", "curl -f http://localhost:8081/ || exit 1"]
+      start_period: 40s
+      interval: 15s
+      timeout: 10s
+      retries: 3
+
+  spark-history-server:
+    image: apache/spark:3.5.5
+    container_name: spark-history-server
+    user: root
+    command: >
+      bash -c "
+        mkdir -p /opt/spark/spark-events && \
+        chown spark:spark /opt/spark/spark-events && \
+        chmod 775 /opt/spark/spark-events && \
+        mkdir -p /opt/spark/data && \
+        chown spark:spark /opt/spark/data && \
+        chmod 775 /opt/spark/data && \
+        /opt/spark/bin/spark-class org.apache.spark.deploy.history.HistoryServer
+      "
+    hostname: spark-history-server
+    environment:
+      - SPARK_MODE=history
+      - SPARK_HISTORY_OPTS=-Dspark.history.fs.logDirectory=/opt/spark/spark-events
+      - TZ=Europe/Saratov
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    ports:
+      - "18080:18080"
+    volumes:
+      - shared-data:/opt/spark/data
+      - spark-events:/opt/spark/spark-events
+      - ./config/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf
+    networks:
+      - spark-network
+    healthcheck:
+      test: ["CMD", "bash", "-c", "curl -f http://localhost:18080/ || exit 1"]
+      start_period: 30s
+      interval: 20s
+      timeout: 10s
+      retries: 3
+
+  jupyter:
+    build: .
+    container_name: jupyter
+    hostname: jupyter
+    environment:
+      - JUPYTER_TOKEN=
+      - JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+      - PYSPARK_PYTHON=python3
+      - PYSPARK_DRIVER_PYTHON=python3
+      - SPARK_CONF_DIR=/opt/spark/conf # Force PySpark to read the same settings as the cluster.
+      - TZ=Europe/Saratov
+    user: root
+    command: >
+      bash -c "
+        mkdir -p /opt/spark/spark-events && \
+        chown spark:spark /opt/spark/spark-events && \
+        chmod 775 /opt/spark/spark-events && \
+        mkdir -p /opt/spark/data && \
+        chown spark:spark /opt/spark/data && \
+        chmod 775 /opt/spark/data && \
+        ln -s /opt/spark/data /home/jovyan/data
+        start-notebook.sh --NotebookApp.token='' --NotebokApp.password='' --ip=0.0.0.0 --port=8888 --notebook-dir=/home/jovyan --no-browser
+      "
+    volumes:
+      - shared-data:/opt/spark/data
+      - spark-events:/opt/spark/spark-events
+      - ./work:/home/jovyan/work
+      - ./config/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf
+    ports:
+      - "8888:8888"
+      - "4040:4040"
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    networks:
+      - spark-network
+    healthcheck:
+      test: ["CMD", "bash", "-c", "curl -f http://localhost:8888/api || exit 1"]
+      start_period: 60s
+      interval: 30s
+      timeout: 15s
+      retries: 3
+
+volumes:
+  shared-data:
+  spark-events:
+
+networks:
+  spark-network:
+    driver: bridge
